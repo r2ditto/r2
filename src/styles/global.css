@@ -18,7 +18,7 @@ body {
 }
 
 body {
-  @apply font-sans antialiased;
+  @apply font-robotoMono;
   @apply flex flex-col;
   @apply bg-neutral-100 dark:bg-neutral-900;
   @apply text-black/75 dark:text-white/75;

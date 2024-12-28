@@ -6,9 +6,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Geist Sans", ...defaultTheme.fontFamily.sans],
-        mono: ["Geist Mono", ...defaultTheme.fontFamily.mono],
         bungee: ["Bungee Shade", ...defaultTheme.fontFamily.sans],
+        robotoMono: ["Roboto Mono", ...defaultTheme.fontFamily.mono],
       },
       colors: {
         customNeutral: {
