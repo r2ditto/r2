@@ -8,6 +8,7 @@ export default {
       fontFamily: {
         sans: ["Geist Sans", ...defaultTheme.fontFamily.sans],
         mono: ["Geist Mono", ...defaultTheme.fontFamily.mono],
+        bungee: ["Bungee Shade", "cursive"],
       },
     },
   },

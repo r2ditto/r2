@@ -1,16 +1,8 @@
 ---
-import "../styles/global.css";
 import { ViewTransitions } from "astro:transitions";
+import "../styles/global.css";
 
-import "@fontsource/geist-sans/100.css";
-import "@fontsource/geist-sans/200.css";
-import "@fontsource/geist-sans/300.css";
-import "@fontsource/geist-sans/400.css";
-import "@fontsource/geist-sans/500.css";
-import "@fontsource/geist-sans/600.css";
-import "@fontsource/geist-sans/700.css";
-import "@fontsource/geist-sans/800.css";
-import "@fontsource/geist-sans/900.css";
+import "@fontsource/bungee-shade/400.css";
 import "@fontsource/geist-mono/100.css";
 import "@fontsource/geist-mono/200.css";
 import "@fontsource/geist-mono/300.css";
@@ -20,6 +12,15 @@ import "@fontsource/geist-mono/600.css";
 import "@fontsource/geist-mono/700.css";
 import "@fontsource/geist-mono/800.css";
 import "@fontsource/geist-mono/900.css";
+import "@fontsource/geist-sans/100.css";
+import "@fontsource/geist-sans/200.css";
+import "@fontsource/geist-sans/300.css";
+import "@fontsource/geist-sans/400.css";
+import "@fontsource/geist-sans/500.css";
+import "@fontsource/geist-sans/600.css";
+import "@fontsource/geist-sans/700.css";
+import "@fontsource/geist-sans/800.css";
+import "@fontsource/geist-sans/900.css";
 
 interface Props {
   title: string;
@@ -184,8 +185,8 @@ const { title, description, image = "/blog-placeholder-1.jpg" } = Astro.props;
              -ms-transition: none !important;
              transition: none !important;
           }
-        `
-      )
+        `,
+      ),
     );
 
     document.head.appendChild(css);
@@ -205,10 +206,13 @@ const { title, description, image = "/blog-placeholder-1.jpg" } = Astro.props;
   function preloadTheme() {
     const userTheme = localStorage.theme;
 
-    if (userTheme === "light" || userTheme === "dark") {
-      toggleTheme(userTheme === "dark");
+    if (userTheme === "light") {
+      toggleTheme(false);
+    } else if (userTheme === "dark") {
+      toggleTheme(true);
     } else {
-      toggleTheme(window.matchMedia("(prefers-color-scheme: dark)").matches);
+      localStorage.setItem("theme", "dark");
+      toggleTheme(true);
     }
   }
 
