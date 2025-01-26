@@ -8,19 +8,14 @@ import { SITE } from "@consts";
   <Container>
     <div class="flex flex-wrap justify-between gap-y-2">
       <Link href="/" underline={false}>
-        <div class="font-semibold">
-          {SITE.TITLE}&nbsp;🔬
+        <div class="font-bungee text-2xl font-bold">
+          {SITE.TITLE}
         </div>
       </Link>
-      <nav class="flex items-center gap-1 text-sm">
+
+      <nav class="flex items-center gap-5 text-sm">
         <Link href="/blog">blog</Link>
-        <span>
-          {`/`}
-        </span>
-        <Link href="/projects">projects</Link>
-        <span>
-          {`/`}
-        </span>
+
         <button
           id="magnifying-glass"
           aria-label="Search"
