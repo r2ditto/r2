@@ -1,25 +1,17 @@
-import { defineCollection, z } from "astro:content";
+import { z } from "astro:content";
 
-const blog = defineCollection({
-  type: "content",
-  schema: z.object({
-    title: z.string(),
-    description: z.string(),
-    date: z.coerce.date(),
-    draft: z.boolean().optional(),
-  }),
+export const sanitySchema = z.object({
+  title: z.string(),
+  slug: z.string(),
+  date: z.date(),
+  image: z
+    .object({
+      asset: z.object({
+        _ref: z.string(),
+      }),
+    })
+    .optional(),
+  body: z.array(z.any()).optional(),
 });
 
-const projects = defineCollection({
-  type: "content",
-  schema: z.object({
-    title: z.string(),
-    description: z.string(),
-    date: z.coerce.date(),
-    draft: z.boolean().optional(),
-    demoURL: z.string().optional(),
-    repoURL: z.string().optional(),
-  }),
-});
-
-export const collections = { blog, projects };
+export type SanityPost = z.infer<typeof sanitySchema>;
