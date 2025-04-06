@@ -27,7 +27,7 @@ export const PROJECTS: Metadata = {
 export const SOCIALS: Socials = [
   {
     NAME: "Bluesky",
-    HREF: "https://bsky.app/profile/r2-ok.bsky.social",
+    HREF: "https://bsky.app/profile/r-2.io",
   },
   {
     NAME: "GitHub",

@@ -15,14 +15,6 @@ import TableOfContents from "@components/TableOfContents.astro";
 
 import { readingTime } from "@lib/utils";
 
-interface Post extends SanityDocument {
-  title: string;
-  slug: { current: string };
-  body: PortableTextBlock[];
-  publishedAt: string;
-  description?: string;
-}
-
 export async function getStaticPaths() {
   // Query for all posts, ordered by publishedAt date
   const posts = await sanityClient.fetch<SanityDocument[]>(`*[
