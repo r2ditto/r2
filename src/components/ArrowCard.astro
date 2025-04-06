@@ -1,13 +1,18 @@
 ---
-import type { CollectionEntry } from "astro:content";
+export type SanityPostEntry = {
+  collection: "notes" | "posts";
+  slug: string;
+  data: {
+    title?: string | null;
+    description?: string | null;
+  };
+};
 
 type Props = {
-  entry: CollectionEntry<"blog"> | CollectionEntry<"projects">;
+  entry: SanityPostEntry;
 };
 
-const { entry } = Astro.props as {
-  entry: CollectionEntry<"blog"> | CollectionEntry<"projects">;
-};
+const { entry } = Astro.props as Props;
 ---
 
 <a
@@ -18,9 +23,11 @@ const { entry } = Astro.props as {
     <div class="font-semibold">
       {entry.data.title}
     </div>
-    <div class="text-sm">
-      {entry.data.description}
-    </div>
+    {
+      entry.data.description && (
+        <div class="text-sm">{entry.data.description}</div>
+      )
+    }
   </div>
   <svg
     xmlns="http://www.w3.org/2000/svg"
