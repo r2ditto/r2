@@ -59,6 +59,9 @@ dependencies:
   astro-pagefind:
     specifier: ^1.6.0
     version: 1.6.0(astro@4.16.8)
+  astro-portabletext:
+    specifier: ^0.11.1
+    version: 0.11.1(astro@4.16.8)
   clsx:
     specifier: ^2.1.1
     version: 2.1.1
@@ -5187,6 +5190,16 @@ packages:
       astro: 4.16.8(rollup@4.34.8)(typescript@5.6.3)
       pagefind: 1.1.1
       sirv: 2.0.4
+    dev: false
+
+  /astro-portabletext@0.11.1(astro@4.16.8):
+    resolution: {integrity: sha512-z0XqyPtba+U/B7oYsuU/wCYpDVyWdEyNzXvjc8xMTTQxNr8gIEuOg9HgG4xrmpqOraHjLc27Zy9Rvap/46SX+A==}
+    peerDependencies:
+      astro: '>=4.6.0'
+    dependencies:
+      '@portabletext/toolkit': 2.0.17
+      '@portabletext/types': 2.0.13
+      astro: 4.16.8(rollup@4.34.8)(typescript@5.6.3)
     dev: false
 
   /astro@4.16.8(rollup@4.34.8)(typescript@5.6.3):

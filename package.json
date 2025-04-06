@@ -28,6 +28,7 @@
     "@vercel/analytics": "^1.5.0",
     "astro": "^4.16.8",
     "astro-pagefind": "^1.6.0",
+    "astro-portabletext": "^0.11.1",
     "clsx": "^2.1.1",
     "groq": "^3.76.3",
     "motion": "^11.12.0",
