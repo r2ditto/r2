@@ -32,6 +32,12 @@ dependencies:
   '@fontsource/geist-sans':
     specifier: ^5.1.0
     version: 5.1.0
+  '@portabletext/react':
+    specifier: ^3.2.1
+    version: 3.2.1(react@19.0.0)
+  '@portabletext/types':
+    specifier: ^2.0.13
+    version: 2.0.13
   '@sanity/astro':
     specifier: ^3.2.5
     version: 3.2.5(@sanity/client@6.28.0)(@sanity/types@3.77.2)(astro@4.16.8)(react-dom@19.0.0)(react-is@19.0.0)(react@19.0.0)(sanity@3.77.2)(styled-components@6.1.15)

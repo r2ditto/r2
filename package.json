@@ -19,6 +19,8 @@
     "@fontsource/bungee-shade": "^5.1.0",
     "@fontsource/geist-mono": "^5.1.0",
     "@fontsource/geist-sans": "^5.1.0",
+    "@portabletext/react": "^3.2.1",
+    "@portabletext/types": "^2.0.13",
     "@sanity/astro": "^3.2.5",
     "@sanity/client": "^6.28.0",
     "@sanity/image-url": "^1.1.0",
