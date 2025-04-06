@@ -2,7 +2,6 @@
 import { sanityClient } from "sanity:client";
 import { PortableText } from "@portabletext/react";
 
-import type { PortableTextBlock } from "@portabletext/types";
 import type { SanityDocument } from "@sanity/client";
 
 import Layout from "@layouts/Layout.astro";
@@ -14,6 +13,7 @@ import PostNavigation from "@components/PostNavigation.astro";
 import TableOfContents from "@components/TableOfContents.astro";
 
 import { readingTime } from "@lib/utils";
+import SanityImage from "@components/SanityImage";
 
 export async function getStaticPaths() {
   // Query for all posts, ordered by publishedAt date
@@ -76,7 +76,14 @@ const estimatedReadTime = post.body
     <article class="prose prose-neutral max-w-full dark:prose-invert">
       {
         post.body ? (
-          <PortableText value={post.body} />
+          <PortableText
+            value={post.body}
+            components={{
+              types: {
+                image: SanityImage,
+              },
+            }}
+          />
         ) : (
           <p>Post content is missing.</p>
         )
