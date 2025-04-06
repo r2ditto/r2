@@ -1,0 +1,43 @@
+---
+import type { SanityDocument } from "@sanity/client";
+import { sanityClient } from "sanity:client";
+import Layout from "@layouts/Layout.astro";
+import Container from "@components/Container.astro";
+
+const POSTS_QUERY = `*[
+  _type == "post"
+  && defined(slug.current)
+  && !(_id in path('drafts.**'))
+]|order(publishedAt desc)[0...12]{_id, title, slug, publishedAt, description}`;
+
+const posts = await sanityClient.fetch<SanityDocument[]>(POSTS_QUERY);
+---
+
+<Layout title="Blog Posts" description="Latest blog posts">
+  <Container>
+    <h1 class="animate mb-8 text-4xl font-bold text-black dark:text-white">
+      Posts
+    </h1>
+    <ul class="animate flex flex-col gap-y-4">
+      {
+        posts.map((post) => (
+          <li class="group rounded-lg border border-black/10 bg-white p-4 transition-colors hover:border-black/20 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20">
+            <a href={`/notes/${post.slug.current}`}>
+              <h2 class="text-xl font-semibold text-black group-hover:underline dark:text-white">
+                {post.title}
+              </h2>
+              {post.description && (
+                <p class="mt-1 text-black/60 dark:text-white/60">
+                  {post.description}
+                </p>
+              )}
+              <p class="mt-2 text-sm text-black/40 dark:text-white/40">
+                {new Date(post.publishedAt).toLocaleDateString()}
+              </p>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </Container>
+</Layout>

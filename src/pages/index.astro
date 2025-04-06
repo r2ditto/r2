@@ -1,15 +1,29 @@
 ---
+import { sanityClient } from "sanity:client";
+import type { SanityDocument } from "@sanity/client";
+
 import ArrowCard from "@components/ArrowCard.astro";
 import Container from "@components/Container.astro";
 import Link from "@components/Link.astro";
-import { HOME, SITE, SOCIALS } from "@consts";
 import Layout from "@layouts/Layout.astro";
-import { getCollection } from "astro:content";
 
-const blog = (await getCollection("blog"))
-  .filter((post) => !post.data.draft)
-  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
-  .slice(0, SITE.NUM_POSTS_ON_HOMEPAGE);
+import { HOME, SITE, SOCIALS } from "@consts";
+
+import type { SanityPostEntry } from "@components/ArrowCard.astro";
+
+const POSTS_QUERY = `*[
+  _type == "post"
+  && defined(slug.current)
+  && !(_id in path('drafts.**'))
+]|order(publishedAt desc)[0...${SITE.NUM_POSTS_ON_HOMEPAGE}]{
+  _id,
+  title,
+  slug,
+  publishedAt,
+  description
+}`;
+
+const recentPosts = await sanityClient.fetch<SanityDocument[]>(POSTS_QUERY);
 ---
 
 <Layout title={HOME.TITLE} description={HOME.DESCRIPTION}>
@@ -28,7 +42,7 @@ const blog = (await getCollection("blog"))
                 With 7 years of experience in startups, IT consulting, and
                 system integrations, I specialize in building sleek,
                 user-friendly web applications. From landing pages to
-                enterprise-level solutions, I’ve worked with modern frameworks
+                enterprise-level solutions, I've worked with modern frameworks
                 like <Link href="https://react.dev">React</Link>, <Link
                   href="https://nextjs.org">Next.js</Link
                 >, and <Link href="https://www.typescriptlang.org"
@@ -56,17 +70,27 @@ const blog = (await getCollection("blog"))
         <section class="animate space-y-6">
           <div class="flex flex-wrap items-center justify-between gap-y-2">
             <h2 class="font-semibold text-black dark:text-white">
-              Latest posts
+              Latest notes
             </h2>
-            <Link href="/blog"> See all posts </Link>
+            <Link href="/notes"> See all notes </Link>
           </div>
           <ul class="not-prose flex flex-col gap-4">
             {
-              blog.map((post) => (
-                <li>
-                  <ArrowCard entry={post} />
-                </li>
-              ))
+              recentPosts.map((post) => {
+                const entry: SanityPostEntry = {
+                  collection: "notes",
+                  slug: post.slug?.current ?? "",
+                  data: {
+                    title: post.title ?? null,
+                    description: post.description ?? null,
+                  },
+                };
+                return (
+                  <li>
+                    <ArrowCard entry={entry} />
+                  </li>
+                );
+              })
             }
           </ul>
         </section>
@@ -78,7 +102,7 @@ const blog = (await getCollection("blog"))
           <article>
             <p>
               I'm currently accepting freelance projects depending on the fit.
-              Let’s chat!
+              Let's chat!
             </p>
           </article>
           <ul class="not-prose flex flex-wrap gap-2">

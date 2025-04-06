@@ -1,0 +1,123 @@
+---
+import { sanityClient } from "sanity:client";
+import { PortableText } from "@portabletext/react";
+
+import type { PortableTextBlock } from "@portabletext/types";
+import type { SanityDocument } from "@sanity/client";
+
+import Layout from "@layouts/Layout.astro";
+import Container from "@components/Container.astro";
+import Giscus from "@components/Giscus.astro";
+import FormattedDate from "@components/FormattedDate.astro";
+import BackToPrevious from "@components/BackToPrevious.astro";
+import PostNavigation from "@components/PostNavigation.astro";
+import TableOfContents from "@components/TableOfContents.astro";
+
+import { readingTime } from "@lib/utils";
+
+interface Post extends SanityDocument {
+  title: string;
+  slug: { current: string };
+  body: PortableTextBlock[];
+  publishedAt: string;
+  description?: string;
+}
+
+export async function getStaticPaths() {
+  // Query for all posts, ordered by publishedAt date
+  const posts = await sanityClient.fetch<SanityDocument[]>(`*[
+    _type == "post" 
+    && defined(slug.current) 
+    && !(_id in path('drafts.**'))
+  ] | order(publishedAt desc)`);
+
+  return posts.map((post, index) => {
+    const prevPost = index > 0 ? posts[index - 1] : null;
+    const nextPost = index < posts.length - 1 ? posts[index + 1] : null;
+
+    return {
+      params: { slug: post.slug.current },
+      props: { post, prevPost, nextPost },
+    };
+  });
+}
+
+const { post, prevPost, nextPost } = Astro.props;
+const headings = post.body
+  ? post.body
+      .filter(
+        (block: any) =>
+          block._type === "block" && ["h2", "h3", "h4"].includes(block.style),
+      )
+      .map((block: any) => ({
+        depth: block.style === "h2" ? 2 : block.style === "h3" ? 3 : 4,
+        slug: block._key,
+        text: block.children.map((child: any) => child.text).join(""),
+      }))
+  : [];
+
+const estimatedReadTime = post.body
+  ? readingTime(JSON.stringify(post.body))
+  : "2 min read";
+---
+
+<Layout title={post.title} description={post.description}>
+  <Container>
+    <div class="mb-6">
+      <BackToPrevious href="/notes">Back to notes</BackToPrevious>
+    </div>
+    <div class="my-10 space-y-1">
+      <div class="flex items-center gap-1.5">
+        <div class="text-sm">
+          <FormattedDate date={new Date(post.publishedAt)} />
+        </div>
+        <span class="text-sm">&bull;</span>
+        <div class="text-sm">{estimatedReadTime}</div>
+      </div>
+      <h1 class="text-3xl font-semibold text-black dark:text-white">
+        {post.title}
+      </h1>
+    </div>
+
+    {headings.length > 0 && <TableOfContents headings={headings} />}
+
+    <article class="prose prose-neutral max-w-full dark:prose-invert">
+      {
+        post.body ? (
+          <PortableText value={post.body} />
+        ) : (
+          <p>Post content is missing.</p>
+        )
+      }
+
+      <div class="mt-24">
+        {
+          (prevPost || nextPost) && (
+            <PostNavigation
+              prevPost={
+                prevPost
+                  ? {
+                      slug: `/notes/${prevPost.slug.current}`,
+                      title: prevPost.title,
+                    }
+                  : null
+              }
+              nextPost={
+                nextPost
+                  ? {
+                      slug: `/notes/${nextPost.slug.current}`,
+                      title: nextPost.title,
+                    }
+                  : null
+              }
+            />
+          )
+        }
+      </div>
+
+      <div class="mt-24">
+        <Giscus />
+      </div>
+    </article>
+  </Container>
+</Layout>;
