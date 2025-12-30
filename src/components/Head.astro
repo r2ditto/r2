@@ -207,7 +207,7 @@ const { title, description, image = "/blog-placeholder-1.jpg" } = Astro.props;
     } else if (userTheme === "dark") {
       toggleTheme(true);
     } else {
-      localStorage.setItem("theme", "dark");
+      localStorage.setItem("theme", "light");
       toggleTheme(true);
     }
   }
