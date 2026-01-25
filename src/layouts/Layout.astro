@@ -21,11 +21,23 @@ const { title, description } = Astro.props;
     <Analytics />
   </head>
   <body>
-    <Header />
+    <!-- <Header /> -->
     <main>
       <slot />
     </main>
-    <Footer />
-    <PageFind />
+    <!-- <Footer /> -->
+    <!-- <PageFind /> -->
   </body>
 </html>
+
+<script>
+let titleText = " R2 | FRONTEND | WEB PERFORMANCE |  ";
+
+function scrollTitle() {
+  titleText = titleText.substring(1) + titleText.substring(0, 1);
+  document.title = titleText;
+  setTimeout(scrollTitle, 1000);
+}
+
+scrollTitle();
+</script>
