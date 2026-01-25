@@ -1,41 +1,226 @@
 ---
 import Container from "@components/Container.astro";
 import Link from "@components/Link.astro";
-import { SITE } from "@consts";
 ---
 
 <header transition:persist>
   <Container>
-    <div class="flex flex-wrap justify-between gap-y-2">
+    <div class="flex flex-wrap justify-between gap-y-2 my-4">
       <Link href="/" underline={false}>
-        <div class="font-bungee text-2xl font-bold">
-          {SITE.TITLE}
+        <div class="text-7xl font-medium">
+          <i>R</i>uin & <i>R</i>ebuild
         </div>
       </Link>
 
-      <nav class="flex items-center gap-5 text-sm">
-        <Link href="/notes">Notes</Link>
-
-        <button
-          id="magnifying-glass"
-          aria-label="Search"
-          class="flex items-center rounded border border-black/15 bg-neutral-100 px-2 py-1 text-xs transition-colors duration-300 ease-in-out hover:bg-black/5 hover:text-black focus-visible:bg-black/5 focus-visible:text-black dark:border-white/20 dark:bg-neutral-900 dark:hover:bg-white/5 dark:hover:text-white dark:focus-visible:bg-white/5 dark:focus-visible:text-white"
-        >
-          <svg
-            height="16"
-            stroke-linejoin="round"
-            viewBox="0 0 16 16"
-            width="16"
-            style="color: currentcolor;"
-            ><path
-              fill-rule="evenodd"
-              clip-rule="evenodd"
-              d="M3.5 7C3.5 5.067 5.067 3.5 7 3.5C8.933 3.5 10.5 5.067 10.5 7C10.5 7.88461 10.1718 8.69256 9.63058 9.30876L9.30876 9.63058C8.69256 10.1718 7.88461 10.5 7 10.5C5.067 10.5 3.5 8.933 3.5 7ZM9.96544 11.0261C9.13578 11.6382 8.11014 12 7 12C4.23858 12 2 9.76142 2 7C2 4.23858 4.23858 2 7 2C9.76142 2 12 4.23858 12 7C12 8.11014 11.6382 9.13578 11.0261 9.96544L14.0303 12.9697L14.5607 13.5L13.5 14.5607L12.9697 14.0303L9.96544 11.0261Z"
-              fill="currentColor"></path></svg
+      <div class="w-full">
+        <div style="position: relative;">
+          <canvas
+            id="drawingCanvas"
+            class="w-full border border-gray-300 dark:border-gray-700 cursor-crosshair"
+            style="touch-action: none; display: block;"
+          ></canvas>
+          <div
+            id="canvasMarquee"
+            class="canvas-marquee relative h-full"
           >
-          &nbsp;Search
-        </button>
-      </nav>
+            <div class="marquee-content uppercase">
+              <span>Draw on me • Draw on me • Draw on me • Draw on me • </span>
+              <span>Draw on me • Draw on me • Draw on me • Draw on me • </span>
+            </div>
+
+            <div class="text-xs absolute -bottom-2 left-10">
+              <p class="text-white">
+                A <s>useless</s> tool. <br />
+                An <s>ineffective</s> drawing gizmo. <br />
+                A <s>non-functional</s> drawing feature. <br />
+                A tool with limited practical value. <br />
+              </p>
+            </div>
+
+          </div>
+        </div>
+        <div class="flex gap-2 mt-2">
+          <button
+            id="resetCanvas"
+            class="py-2 bg-transparent text-black dark:text-white hover:opacity-80 transition-opacity underline"
+          >
+            Reset Image
+          </button>
+        </div>
+      </div>
     </div>
   </Container>
 </header>
+
+<style>
+  .canvas-marquee {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    transform: translateY(-50%);
+    overflow: hidden;
+    pointer-events: none;
+    color: red;
+    padding: 8px 0;
+    font-size: 5rem;
+    font-weight: bold;
+  }
+
+  .marquee-content {
+    display: inline-flex;
+    gap: 0;
+    white-space: nowrap;
+    animation: marquee 20s linear infinite;
+    will-change: transform;
+  }
+
+  .marquee-content span {
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  @keyframes marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .canvas-marquee.hidden {
+    display: none;
+  }
+</style>
+
+<script>
+  const canvas = document.getElementById('drawingCanvas') as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d');
+  const clearBtn = document.getElementById('clearCanvas');
+  const resetBtn = document.getElementById('resetCanvas');
+
+  let isDrawing = false;
+  let lastX = 0;
+  let lastY = 0;
+  let hasDrawn = false;
+
+  const img = new Image();
+  img.src = '/ryan-work.JPG';
+
+  function resizeCanvas() {
+    const containerWidth = canvas.parentElement?.offsetWidth || canvas.offsetWidth;
+
+    canvas.width = containerWidth;
+    canvas.height = 300;
+
+    drawImage();
+  }
+
+  function drawImage() {
+    if (ctx && img.complete) {
+      // Calculate scale to cover the canvas
+      const scaleX = canvas.width / img.naturalWidth;
+      const scaleY = canvas.height / img.naturalHeight;
+      const scale = Math.max(scaleX, scaleY);
+
+      // Calculate source dimensions
+      const sourceWidth = canvas.width / scale;
+      const sourceHeight = canvas.height / scale;
+
+      // Center the crop
+      const sourceX = (img.naturalWidth - sourceWidth) / 2;
+      const sourceY = (img.naturalHeight - sourceHeight) / 2;
+
+      // Draw the cropped and centered image
+      ctx.drawImage(
+        img,
+        sourceX, sourceY, sourceWidth, sourceHeight,
+        0, 0, canvas.width, canvas.height
+      );
+    }
+  }
+
+  img.onload = () => {
+    resizeCanvas();
+  };
+
+  window.addEventListener('resize', resizeCanvas);
+
+  function getCoordinates(e: MouseEvent | TouchEvent) {
+    const rect = canvas.getBoundingClientRect();
+    if (e instanceof MouseEvent) {
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    } else {
+      const touch = e.touches[0];
+      return {
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top
+      };
+    }
+  }
+
+  function startDrawing(e: MouseEvent | TouchEvent) {
+    // Hide marquee on first draw
+    if (!hasDrawn) {
+      const marquee = document.getElementById('canvasMarquee');
+      if (marquee) {
+        marquee.classList.add('hidden');
+      }
+      hasDrawn = true;
+    }
+
+    isDrawing = true;
+    const coords = getCoordinates(e);
+    lastX = coords.x;
+    lastY = coords.y;
+  }
+
+  function draw(e: MouseEvent | TouchEvent) {
+    if (!isDrawing || !ctx) return;
+
+    e.preventDefault();
+
+    const coords = getCoordinates(e);
+
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(coords.x, coords.y);
+    ctx.stroke();
+
+    lastX = coords.x;
+    lastY = coords.y;
+  }
+
+  function stopDrawing() {
+    isDrawing = false;
+  }
+
+  canvas.addEventListener('mousedown', startDrawing);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDrawing);
+  canvas.addEventListener('mouseout', stopDrawing);
+
+  canvas.addEventListener('touchstart', startDrawing);
+  canvas.addEventListener('touchmove', draw);
+  canvas.addEventListener('touchend', stopDrawing);
+
+  clearBtn?.addEventListener('click', () => {
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  });
+
+  resetBtn?.addEventListener('click', () => {
+    drawImage();
+  });
+</script>
