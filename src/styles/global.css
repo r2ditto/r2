@@ -4,7 +4,7 @@
 
 html {
   overflow-y: auto;
-  color-scheme: light;
+  color-scheme: dark;
   scroll-padding-top: 100px;
 }
 
@@ -20,22 +20,8 @@ body {
 body {
   @apply font-sans antialiased;
   @apply flex flex-col;
-  @apply bg-neutral-100 dark:bg-neutral-900;
+  @apply bg-neutral-100 dark:bg-black;
   @apply text-black/75 dark:text-white/75;
-}
-
-header {
-  @apply fixed left-0 right-0 top-0 z-50 py-6;
-  @apply bg-neutral-100/75 dark:bg-neutral-900/75;
-  @apply saturate-200 backdrop-blur-sm;
-}
-
-main {
-  @apply flex-1 py-32;
-}
-
-footer {
-  @apply py-6 text-sm;
 }
 
 article {

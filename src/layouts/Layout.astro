@@ -3,7 +3,6 @@ import Analytics from "@vercel/analytics/astro";
 import Head from "@components/Head.astro";
 import Header from "@components/Header.astro";
 import Footer from "@components/Footer.astro";
-import PageFind from "@components/PageFind.astro";
 import { SITE } from "@consts";
 
 type Props = {
@@ -21,17 +20,16 @@ const { title, description } = Astro.props;
     <Analytics />
   </head>
   <body>
-    <!-- <Header /> -->
+    <Header />
     <main>
       <slot />
     </main>
-    <!-- <Footer /> -->
-    <!-- <PageFind /> -->
+    <Footer />
   </body>
 </html>
 
 <script>
-let titleText = " R2 | FRONTEND | WEB PERFORMANCE |  ";
+let titleText = " R2 | RUIN & REBUILD |  ";
 
 function scrollTitle() {
   titleText = titleText.substring(1) + titleText.substring(0, 1);
