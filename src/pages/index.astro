@@ -28,43 +28,18 @@ const recentPosts = await sanityClient.fetch<SanityDocument[]>(POSTS_QUERY);
 
 <Layout title={HOME.TITLE} description={HOME.DESCRIPTION}>
   <Container>
-    <aside data-pagefind-ignore>
-      <h1 class="animate text-8xl font-extrabold text-black dark:text-white">
-        About <strike>Ryan Rey</strike>
-        <span class="text-bungee">r2</span>
-      </h1>
-
-      <div class="space-y-16">
-        <section>
-          <article class="space-y-4">
-            <span class="animate">
-              <p>
-                With 7 years of experience in startups, IT consulting, and
-                system integrations, I specialize in building sleek,
-                user-friendly web applications. From landing pages to
-                enterprise-level solutions, I've worked with modern frameworks
-                like <Link href="https://react.dev">React</Link>, <Link
-                  href="https://nextjs.org">Next.js</Link
-                >, and <Link href="https://www.typescriptlang.org"
-                  >TypeScript</Link
-                >, always striving to deliver exceptional user experiences.
-              </p>
-            </span>
-
-            <span class="animate">
-              <p>
-                Outside of work, my interest lies in bouldering, skateboarding,
-                riding my fixie around the city and shooting photos.
-              </p>
-            </span>
-
-            <span class="animate">
-              <p>
-                Writing short posts about concepts I'm learning to deepen my
-                understanding and refine my mental models.
-              </p>
-            </span>
-          </article>
+    <div class="space-y-12 mt-4" data-pagefind-ignore>
+        <section class="animate space-y-6">
+          <h2 class="font-semibold text-black dark:text-white">
+            About
+          </h2>
+          <p>
+            Frontend developer and e-commerce enthusiast based in Toronto, Canada. I specialize in the intersection of design, code, and commerce. My goal is to ensure that eye catching visuals never comes at the cost of functional performance. By integrating data-driven decision-making into the development lifecycle, I help brands build products that don't just look great, but convert better and scale faster.
+          </p>
+          
+          <p>
+            <u><i>Informed by full-stack breadth, driven by frontend depth.</i></u>
+          </p>
         </section>
 
         <section class="animate space-y-6">
@@ -72,7 +47,6 @@ const recentPosts = await sanityClient.fetch<SanityDocument[]>(POSTS_QUERY);
             <h2 class="font-semibold text-black dark:text-white">
               Latest notes
             </h2>
-            <Link href="/notes"> See all notes </Link>
           </div>
           <ul class="not-prose flex flex-col gap-4">
             {
@@ -95,16 +69,11 @@ const recentPosts = await sanityClient.fetch<SanityDocument[]>(POSTS_QUERY);
           </ul>
         </section>
 
-        <section class="animate space-y-4">
+        <section class="animate">
           <h2 class="font-semibold text-black dark:text-white">
-            Let's Connect
+            Socials
           </h2>
-          <article>
-            <p>
-              I'm currently accepting freelance projects depending on the fit.
-              Let's chat!
-            </p>
-          </article>
+
           <ul class="not-prose flex flex-wrap gap-2">
             {
               SOCIALS.map((SOCIAL) => (
@@ -116,21 +85,11 @@ const recentPosts = await sanityClient.fetch<SanityDocument[]>(POSTS_QUERY);
                   >
                     {SOCIAL.NAME}
                   </Link>
-                  {"/"}
                 </li>
               ))
             }
-            <li class="line-clamp-1">
-              <Link
-                href={`mailto:${SITE.EMAIL}`}
-                aria-label={`Email ${SITE.TITLE}`}
-              >
-                {SITE.EMAIL}
-              </Link>
-            </li>
           </ul>
         </section>
-      </div>
-    </aside>
+    </div>
   </Container>
 </Layout>
