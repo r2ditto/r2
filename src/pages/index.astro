@@ -1,95 +1,189 @@
 ---
-import { sanityClient } from "sanity:client";
-import type { SanityDocument } from "@sanity/client";
-
-import ArrowCard from "@components/ArrowCard.astro";
-import Container from "@components/Container.astro";
-import Link from "@components/Link.astro";
-import Layout from "@layouts/Layout.astro";
-
+import PosterLayout from "@layouts/PosterLayout.astro";
+import PhotoCube from "@components/PhotoCube.astro";
+import Crumble from "@components/Crumble.astro";
+import { GALLERY } from "@data/gallery";
 import { HOME, SITE, SOCIALS } from "@consts";
 
-import type { SanityPostEntry } from "@components/ArrowCard.astro";
-
-const POSTS_QUERY = `*[
-  _type == "post"
-  && defined(slug.current)
-  && !(_id in path('drafts.**'))
-]|order(publishedAt desc)[0...${SITE.NUM_POSTS_ON_HOMEPAGE}]{
-  _id,
-  title,
-  slug,
-  publishedAt,
-  description
-}`;
-
-const recentPosts = await sanityClient.fetch<SanityDocument[]>(POSTS_QUERY);
+const year = new Date().getFullYear();
 ---
 
-<Layout title={HOME.TITLE} description={HOME.DESCRIPTION}>
-  <Container>
-    <div class="space-y-12 mt-4" data-pagefind-ignore>
-        <section class="animate space-y-6">
-          <h2 class="font-semibold text-black dark:text-white">
-            About
-          </h2>
-          <p>
-            Frontend developer and e-commerce enthusiast based in Toronto, Canada. I specialize in the intersection of design, code, and commerce. My goal is to ensure that eye catching visuals never comes at the cost of functional performance. By integrating data-driven decision-making into the development lifecycle, I help brands build products that don't just look great, but convert better and scale faster.
-          </p>
-          
-          <p>
-            <u><i>Informed by full-stack breadth, driven by frontend depth.</i></u>
-          </p>
-        </section>
+<PosterLayout title={SITE.TITLE} description={HOME.DESCRIPTION}>
+  <main class="poster">
+    <PhotoCube items={GALLERY} />
 
-        <section class="animate space-y-6">
-          <div class="flex flex-wrap items-center justify-between gap-y-2">
-            <h2 class="font-semibold text-black dark:text-white">
-              Latest notes
-            </h2>
-          </div>
-          <ul class="not-prose flex flex-col gap-4">
-            {
-              recentPosts.map((post) => {
-                const entry: SanityPostEntry = {
-                  collection: "notes",
-                  slug: post.slug?.current ?? "",
-                  data: {
-                    title: post.title ?? null,
-                    description: post.description ?? null,
-                  },
-                };
-                return (
-                  <li>
-                    <ArrowCard entry={entry} />
-                  </li>
-                );
-              })
-            }
-          </ul>
-        </section>
+    <header class="corner top-left">
+      <h1 class="title"><Crumble text="Ruin & Rebuild" italicInitials /></h1>
+      <p class="label"><Crumble text="R2 / Frontend Developer" /></p>
+      <p class="label dim"><Crumble text={String(year)} /></p>
+    </header>
 
-        <section class="animate">
-          <h2 class="font-semibold text-black dark:text-white">
-            Socials
-          </h2>
-
-          <ul class="not-prose flex flex-wrap gap-2">
-            {
-              SOCIALS.map((SOCIAL) => (
-                <li class="flex gap-x-2 text-nowrap">
-                  <Link
-                    href={SOCIAL.HREF}
-                    external
-                    aria-label={`${SITE.TITLE} on ${SOCIAL.NAME}`}
-                  >
-                    {SOCIAL.NAME}
-                  </Link>
-                </li>
-              ))
-            }
-          </ul>
-        </section>
+    <div class="corner top-right">
+      <p class="label"><Crumble text="r-2.io" /></p>
+      <button class="label rebuild" type="button" hidden>Rebuild</button>
     </div>
-  </Container>
-</Layout>
+
+    <div class="corner bottom-left">
+      <p class="label"><Crumble text="Toronto, CA" /></p>
+    </div>
+
+    <nav class="corner bottom-center" aria-label="Social">
+      {
+        SOCIALS.map((social) => (
+          <a class="label" href={social.HREF} target="_blank" rel="noopener">
+            <Crumble text={social.NAME} />
+          </a>
+        ))
+      }
+    </nav>
+
+    <footer class="corner bottom-right">
+      <p class="label"><Crumble text={`© ${year} R2`} /></p>
+      <p class="label dim"><Crumble text="Ryan Rey" /></p>
+    </footer>
+  </main>
+</PosterLayout>
+
+<style>
+  .poster {
+    position: relative;
+    height: 100dvh;
+    overflow: hidden;
+    /* Design-board dot grid, like a Figma canvas */
+    background-color: #111111;
+    background-image: radial-gradient(circle, #3a3a3a 1px, transparent 1.5px);
+    background-size: 24px 24px;
+    background-position: 12px 12px;
+  }
+
+  .corner {
+    position: absolute;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .corner a,
+  .corner button {
+    pointer-events: auto;
+  }
+
+  .top-left {
+    top: 1.25rem;
+    left: 1.5rem;
+  }
+
+  .top-right {
+    top: 1.25rem;
+    right: 1.5rem;
+    text-align: right;
+    /* Align with the subtitle row under the title */
+    padding-top: clamp(2.75rem, 7.5vw, 6.5rem);
+  }
+
+  .bottom-left {
+    bottom: 1.25rem;
+    left: 1.5rem;
+  }
+
+  .bottom-center {
+    bottom: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1.25rem;
+  }
+
+  .bottom-right {
+    bottom: 1.25rem;
+    right: 1.5rem;
+    text-align: right;
+  }
+
+  .title {
+    margin: 0 0 0.5rem;
+    font-family: "Instrument Serif", serif;
+    font-weight: 400;
+    font-size: clamp(2.5rem, 7vw, 6rem);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    cursor: default;
+  }
+
+  .label {
+    margin: 0;
+    font-family: "Geist Mono", monospace;
+    font-size: clamp(0.7rem, 1vw, 0.875rem);
+    line-height: 1.3;
+    text-transform: uppercase;
+    color: #fff;
+    text-decoration: none;
+  }
+
+  .rebuild {
+    margin-top: 0.25rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    opacity: 0.55;
+  }
+
+  .rebuild:hover,
+  .rebuild.is-total {
+    opacity: 1;
+  }
+
+  /* Everything is broken: the whole poster takes a hit */
+  .poster:global(.is-shaking) {
+    animation: shake 450ms cubic-bezier(.36, .07, .19, .97);
+  }
+
+  @keyframes shake {
+    10%, 90% { transform: translate(-2px, 1px); }
+    20%, 80% { transform: translate(4px, -2px); }
+    30%, 50%, 70% { transform: translate(-7px, 3px); }
+    40%, 60% { transform: translate(7px, -3px); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .poster:global(.is-shaking) {
+      animation: none;
+    }
+  }
+
+  a.label:hover,
+  .rebuild:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .dim {
+    opacity: 0.55;
+  }
+
+  @media (max-width: 640px) {
+    .bottom-center {
+      bottom: 3.5rem;
+      left: 1.5rem;
+      transform: none;
+      gap: 0.75rem;
+    }
+  }
+</style>
+
+<script>
+  import { Crumble } from "@lib/crumble";
+  import { initRuin, type RuinableGallery } from "@lib/ruin";
+
+  let ruin: ReturnType<typeof initRuin> | null = null;
+  const crumbles = [...document.querySelectorAll<HTMLElement>("[data-crumble]")].map(
+    (el) => new Crumble(el, () => ruin?.update()),
+  );
+
+  ruin = initRuin({
+    gallery: document.querySelector<RuinableGallery>("photo-cube"),
+    crumbles,
+    button: document.querySelector<HTMLButtonElement>(".rebuild"),
+    poster: document.querySelector<HTMLElement>(".poster"),
+  });
+</script>

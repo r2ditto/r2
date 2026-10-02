@@ -10,7 +10,7 @@ export const SITE: Site = {
 
 export const HOME: Metadata = {
   TITLE: "Home",
-  DESCRIPTION: "Astro Micro is an accessible theme for Astro.",
+  DESCRIPTION: "R2 — Ruin & Rebuild. Frontend developer based in Toronto.",
 };
 
 export const BLOG: Metadata = {

@@ -1,0 +1,441 @@
+---
+import type { GalleryItem } from "@lib/timeline-gallery";
+
+interface Props {
+  // Photos repeat across the 54 tiles when fewer than 54 are supplied.
+  items: GalleryItem[];
+}
+
+const { items } = Astro.props;
+---
+
+<photo-cube data-items={JSON.stringify(items)}>
+  <div class="stage" aria-hidden="true"></div>
+
+  <div class="photo-blob" aria-hidden="true">
+    <div class="tracker-link"></div>
+    <div class="tracker-pointer"></div>
+    <div class="tracker-box"><canvas class="tracker-pixels" width="8" height="8"></canvas><span class="tracker-coordinates"></span><span class="tracker-crosshair">•</span></div>
+    <div class="blob-surface">
+      <h2 class="blob-heading"></h2>
+      <p class="blob-subtitle"></p>
+    </div>
+  </div>
+
+  <div class="cube-controls" hidden>
+    <p class="hint" hidden>
+      Drag to rotate · <span class="mouse-hint">Double-click</span><span class="touch-hint">Double-tap</span> the background to explode
+    </p>
+    <button class="cube-action" type="button">Rebuild</button>
+  </div>
+
+  <ul class="sr-only">
+    {
+      items.map((item) => (
+        <li>
+          <h2>{item.title ?? item.caption}</h2>
+          {item.text && <p>{item.text}</p>}
+        </li>
+      ))
+    }
+  </ul>
+
+  <aside class="details" aria-live="polite" hidden>
+    <button class="close" type="button" aria-label="Close details">×</button>
+    <h2 class="details-title"></h2>
+    <p class="details-text"></p>
+    <p class="details-index"></p>
+  </aside>
+</photo-cube>
+
+<style>
+  photo-cube {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  .stage {
+    position: absolute;
+    inset: 0;
+  }
+
+  .stage :global(canvas) {
+    display: block;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .stage :global(canvas.is-dragging) {
+    cursor: grabbing;
+  }
+
+  .photo-blob {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    width: 0;
+    height: 0;
+    color: #f4f4f0;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 120ms ease, visibility 120ms;
+    will-change: transform;
+  }
+
+  .photo-blob.is-visible { opacity: 1; visibility: visible; }
+
+  .tracker-box {
+    position: absolute;
+    left: -36px;
+    top: -24px;
+    width: 72px;
+    height: 48px;
+    box-sizing: border-box;
+    border: 1px solid currentColor;
+    background: #ffffff0d;
+  }
+
+  .tracker-pixels {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    filter: grayscale(1);
+    opacity: 0.6;
+  }
+
+  .tracker-link {
+    position: absolute;
+    height: 1px;
+    background: #fff9;
+    transform-origin: 0 50%;
+  }
+
+  .tracker-pointer {
+    position: absolute;
+    width: 18px;
+    height: 26px;
+    border: 1px solid #fffb;
+    background: repeating-conic-gradient(#fff3 0% 25%, #fff0 0% 50%) 0 / 8px 8px;
+    box-sizing: border-box;
+  }
+
+  .tracker-coordinates {
+    position: absolute;
+    left: -1px;
+    bottom: 100%;
+    padding: 2px 4px;
+    background: #ffffffcc;
+    color: #111;
+    white-space: nowrap;
+    font: 9px/1.2 "Geist Mono", monospace;
+    letter-spacing: 0.06em;
+  }
+
+  .tracker-crosshair {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font: 14px/1 "Geist Mono", monospace;
+  }
+
+  .blob-surface {
+    position: absolute;
+    width: min(220px, calc(100vw - 32px));
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border-left: 1px solid currentColor;
+    background: #111e;
+  }
+
+  .blob-heading {
+    margin: 0 0 6px;
+    font: 0.8rem/1.2 "Geist Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .blob-subtitle {
+    margin: 0;
+    color: #ddd;
+    font: 0.65rem/1.55 "Geist Mono", monospace;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .photo-blob { transition: none; }
+  }
+
+  .cube-controls {
+    position: absolute;
+    z-index: 1;
+    bottom: max(6.5rem, 12vh);
+    left: 1rem;
+    right: 1rem;
+    text-align: center;
+    font: 0.7rem/1.6 "Geist Mono", monospace;
+    color: #aaa;
+    pointer-events: none;
+  }
+
+  .hint { margin: 0 0 0.25rem; }
+  .touch-hint { display: none; }
+
+  .cube-action {
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: #111;
+    color: #ddd;
+    font: inherit;
+    text-transform: uppercase;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .cube-action:hover { border-color: #ddd; color: #fff; }
+  .cube-action:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+  .cube-action:disabled { opacity: 0.5; cursor: wait; }
+
+  @media (pointer: coarse) {
+    .mouse-hint { display: none; }
+    .touch-hint { display: inline; }
+  }
+
+  /* Card-back styling, matching the gallery's flipped cards */
+  .details {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    right: clamp(1.5rem, 6vw, 6rem);
+    width: min(22rem, 34vw);
+    padding: 1.5rem 1.5rem 1.25rem;
+    background: #f1ede4;
+    color: #111;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    transform: translate(0, -50%);
+    animation: details-in 350ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .details[hidden] {
+    display: none;
+  }
+
+  .details-title {
+    margin: 0 2rem 0.75rem 0;
+    font-family: "Instrument Serif", serif;
+    font-weight: 400;
+    font-size: clamp(1.75rem, 3vw, 2.75rem);
+    line-height: 0.95;
+  }
+
+  .details-text {
+    margin: 0 0 2rem;
+    font-family: "Geist Mono", monospace;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+  }
+
+  .details-index {
+    margin: 0;
+    font-family: "Geist Mono", monospace;
+    font-size: 0.75rem;
+    opacity: 0.5;
+  }
+
+  .close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: 1.5rem/1 "Geist Mono", monospace;
+    cursor: pointer;
+    opacity: 0.6;
+  }
+
+  .close:hover {
+    opacity: 1;
+  }
+
+  @keyframes details-in {
+    from {
+      opacity: 0;
+      transform: translate(1.5rem, -50%);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .details {
+      top: auto;
+      right: 1rem;
+      bottom: 6.5rem;
+      left: 1rem;
+      width: auto;
+      transform: none;
+      animation-name: details-up;
+    }
+
+    @keyframes details-up {
+      from {
+        opacity: 0;
+        transform: translateY(1.5rem);
+      }
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .details {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  import type { GalleryItem } from "@lib/timeline-gallery";
+  import type { PhotoCube } from "@lib/photo-cube";
+
+  class PhotoCubeElement extends HTMLElement {
+    private cube?: PhotoCube;
+    private ready?: Promise<PhotoCube | undefined>;
+
+    connectedCallback() {
+      const stage = this.querySelector<HTMLElement>(".stage");
+      const items: GalleryItem[] = JSON.parse(this.dataset.items ?? "[]");
+      if (!stage || items.length === 0) return;
+
+      // Three.js is heavy; load it after the rest of the page is up
+      this.ready = import("@lib/photo-cube").then(({ PhotoCube }) => {
+        if (!this.isConnected) return undefined;
+        this.cube = new PhotoCube(stage, items);
+        this.bindControls();
+        return this.cube;
+      });
+
+      this.bindDetails(items);
+      this.bindBlob(items);
+    }
+
+    disconnectedCallback() {
+      this.cube?.destroy();
+    }
+
+    // Pull an exploded cube back together
+    async rebuild(): Promise<void> {
+      const cube = await this.ready;
+      return cube?.rebuild();
+    }
+
+    // Share of the cube that's been wrecked (0..1)
+    get ruinLevel() {
+      return this.cube?.ruinLevel ?? 0;
+    }
+
+    private bindControls() {
+      const controls = this.querySelector<HTMLElement>(".cube-controls")!;
+      const button = controls.querySelector<HTMLButtonElement>(".cube-action")!;
+      const hint = controls.querySelector<HTMLElement>(".hint")!;
+      controls.hidden = false;
+      let state = "exploded";
+      this.addEventListener("gallery:ruin", (event) => {
+        state = (event as CustomEvent<{ state: string }>).detail.state;
+        button.disabled = state === "rebuilding";
+        button.textContent = state === "intact" ? "Explode cube" : state === "rebuilding" ? "Rebuilding…" : "Rebuild";
+        hint.hidden = state !== "intact";
+      });
+      button.addEventListener("click", () => {
+        if (state === "intact") this.cube?.explode();
+        else if (state === "exploded") void this.rebuild();
+      });
+    }
+
+    private bindBlob(items: GalleryItem[]) {
+      const blob = this.querySelector<HTMLElement>(".photo-blob")!;
+      const surface = blob.querySelector<HTMLElement>(".blob-surface")!;
+      const coordinates = blob.querySelector<HTMLElement>(".tracker-coordinates")!;
+      const heading = blob.querySelector<HTMLElement>(".blob-heading")!;
+      const subtitle = blob.querySelector<HTMLElement>(".blob-subtitle")!;
+      const box = blob.querySelector<HTMLElement>(".tracker-box")!;
+      const marker = blob.querySelector<HTMLElement>(".tracker-pointer")!;
+      const line = blob.querySelector<HTMLElement>(".tracker-link")!;
+      const pixels = blob.querySelector<HTMLCanvasElement>(".tracker-pixels")!;
+      const context = pixels.getContext("2d")!;
+      const thumbnails = new Map<string, HTMLImageElement>();
+      let previous: number | null = null;
+      this.addEventListener("cube:hover", (event) => {
+        const { index, x, y, bounds } = (event as CustomEvent<{
+          index: number | null; x: number; y: number;
+          bounds: { x: number; y: number; width: number; height: number } | null;
+        }>).detail;
+        const item = index === null ? null : items[index];
+        blob.classList.toggle("is-visible", !!item);
+        if (!item || !bounds) { previous = null; return; }
+        if (index !== previous) {
+          heading.textContent = item.title ?? item.caption ?? "";
+          subtitle.textContent = item.text ?? "";
+          previous = index;
+          context.clearRect(0, 0, 8, 8);
+          let image = thumbnails.get(item.src);
+          const paint = (image: HTMLImageElement) => {
+            if (previous !== index) return;
+            const size = Math.min(image.naturalWidth, image.naturalHeight);
+            context.drawImage(image, (image.naturalWidth - size) / 2, (image.naturalHeight - size) / 2, size, size, 0, 0, 8, 8);
+          };
+          if (!image) {
+            image = new Image();
+            thumbnails.set(item.src, image);
+            image.src = item.src;
+          }
+          if (image.complete && image.naturalWidth) paint(image);
+          else image.addEventListener("load", () => paint(image!), { once: true });
+        }
+        const centerX = bounds.x + bounds.width / 2;
+        const centerY = bounds.y + bounds.height / 2;
+        blob.style.transform = `translate3d(${centerX}px, ${centerY}px, 0)`;
+        box.style.left = `${-bounds.width / 2}px`;
+        box.style.top = `${-bounds.height / 2}px`;
+        box.style.width = `${bounds.width}px`;
+        box.style.height = `${bounds.height}px`;
+        const dx = x - centerX;
+        const dy = y - centerY;
+        marker.style.transform = `translate(${dx - 9}px, ${dy - 13}px)`;
+        line.style.width = `${Math.hypot(dx, dy)}px`;
+        line.style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
+        const width = surface.offsetWidth;
+        const height = surface.offsetHeight;
+        const right = bounds.x + bounds.width + 16;
+        const left = right + width > this.clientWidth - 16 ? bounds.x - width - 16 : right;
+        const top = Math.max(16, Math.min(bounds.y, this.clientHeight - height - 16));
+        coordinates.textContent = `TRACK ${String(index! + 1).padStart(2, "0")}`;
+        surface.style.transform = `translate(${Math.max(16, left) - centerX}px, ${top - centerY}px)`;
+      });
+    }
+
+    private bindDetails(items: GalleryItem[]) {
+      const panel = this.querySelector<HTMLElement>(".details")!;
+      const title = panel.querySelector(".details-title")!;
+      const text = panel.querySelector(".details-text")!;
+      const index = panel.querySelector(".details-index")!;
+
+      this.addEventListener("cube:select", (e) => {
+        const i = (e as CustomEvent<{ index: number | null }>).detail.index;
+        const item = i === null ? null : items[i];
+        panel.hidden = !item;
+        if (!item || i === null) return;
+        title.textContent = item.title ?? item.caption ?? "";
+        text.textContent = item.text ?? "";
+        index.textContent = `NO. ${String(i + 1).padStart(2, "0")}`;
+      });
+
+      panel.querySelector(".close")!.addEventListener("click", () => this.cube?.select(null));
+    }
+  }
+
+  customElements.define("photo-cube", PhotoCubeElement);
+</script>

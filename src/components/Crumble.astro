@@ -1,0 +1,43 @@
+---
+// Text split into glyphs so each letter can crumble to the floor and be rebuilt.
+// Screen readers get the intact text; the glyphs are decorative.
+interface Props {
+  text: string;
+  // Set capital letters that start a word in italic (the title's "R"s)
+  italicInitials?: boolean;
+  class?: string;
+}
+
+const { text, italicInitials = false, class: className } = Astro.props;
+
+const glyphs = [...text].map((char, i) => ({
+  char: char === " " ? " " : char,
+  italic:
+    italicInitials &&
+    char !== char.toLowerCase() &&
+    (i === 0 || text[i - 1] === " "),
+}));
+---
+
+<span class:list={["crumble", className]} data-crumble>
+  <span class="sr-only">{text}</span>
+  <span aria-hidden="true">
+    {
+      glyphs.map(({ char, italic }) =>
+        italic ? <i class="glyph">{char}</i> : <span class="glyph">{char}</span>,
+      )
+    }
+  </span>
+</span>
+
+<style>
+  .crumble {
+    pointer-events: auto;
+    user-select: none;
+  }
+
+  .glyph {
+    display: inline-block;
+    will-change: transform;
+  }
+</style>

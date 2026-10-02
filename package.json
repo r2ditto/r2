@@ -19,6 +19,7 @@
     "@fontsource/bungee-shade": "^5.1.0",
     "@fontsource/geist-mono": "^5.1.0",
     "@fontsource/geist-sans": "^5.1.0",
+    "@fontsource/instrument-serif": "^5.3.0",
     "@portabletext/react": "^3.2.1",
     "@portabletext/types": "^2.0.13",
     "@sanity/astro": "^3.2.5",
@@ -41,11 +42,13 @@
     "styled-components": "^6.1.15",
     "tailwind-merge": "^2.5.4",
     "tailwindcss": "^3.4.14",
+    "three": "^0.186.1",
     "typescript": "^5.6.3",
     "vite": "^6.0.0"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",
+    "@types/three": "^0.186.0",
     "@vitejs/plugin-basic-ssl": "^1.1.0",
     "pagefind": "^1.1.1",
     "prettier": "^3.3.3",

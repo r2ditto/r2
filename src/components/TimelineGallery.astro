@@ -1,0 +1,75 @@
+---
+import type { GalleryItem } from "@lib/timeline-gallery";
+
+interface Props {
+  items: GalleryItem[];
+}
+
+const { items } = Astro.props;
+---
+
+<timeline-gallery data-items={JSON.stringify(items)}>
+  <canvas aria-hidden="true"></canvas>
+  <ul class="sr-only">
+    {
+      items.map((item) => (
+        <li>
+          <h2>{item.title ?? item.caption}</h2>
+          {item.text && <p>{item.text}</p>}
+        </li>
+      ))
+    }
+  </ul>
+</timeline-gallery>
+
+<style>
+  timeline-gallery {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+  }
+
+  canvas:global(.is-dragging) {
+    cursor: grabbing;
+  }
+</style>
+
+<script>
+  import { TimelineGallery, type GalleryItem } from "@lib/timeline-gallery";
+
+  class TimelineGalleryElement extends HTMLElement {
+    private gallery?: TimelineGallery;
+
+    connectedCallback() {
+      const canvas = this.querySelector("canvas");
+      const items: GalleryItem[] = JSON.parse(this.dataset.items ?? "[]");
+      if (!canvas || items.length === 0) return;
+      this.gallery = new TimelineGallery(canvas, items);
+    }
+
+    disconnectedCallback() {
+      this.gallery?.destroy();
+    }
+
+    // Fly every card out of the conveyor back into its gap
+    rebuild(): Promise<void> {
+      return this.gallery?.rebuild() ?? Promise.resolve();
+    }
+
+    // Share of the conveyor that's been wrecked (0..1)
+    get ruinLevel() {
+      return this.gallery?.ruinLevel ?? 0;
+    }
+  }
+
+  customElements.define("timeline-gallery", TimelineGalleryElement);
+</script>
