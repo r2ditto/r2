@@ -1,17 +1,16 @@
-import { z } from "astro:content";
+import { defineCollection, z } from "astro:content";
 
-export const sanitySchema = z.object({
-  title: z.string(),
-  slug: z.string(),
-  date: z.date(),
-  image: z
-    .object({
-      asset: z.object({
-        _ref: z.string(),
-      }),
-    })
-    .optional(),
-  body: z.array(z.any()).optional(),
+const notes = defineCollection({
+  type: "content",
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    date: z.coerce.date(),
+    category: z.string().default("Field notes"),
+    imageAlt: z.string().optional(),
+    images: z.array(z.string()).min(1),
+    draft: z.boolean().default(false),
+  }),
 });
 
-export type SanityPost = z.infer<typeof sanitySchema>;
+export const collections = { notes };

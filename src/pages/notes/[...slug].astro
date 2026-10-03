@@ -1,9 +1,5 @@
 ---
-import { sanityClient } from "sanity:client";
-import { PortableText } from "@portabletext/react";
-
-import type { SanityDocument } from "@sanity/client";
-
+import { getCollection, type CollectionEntry } from "astro:content";
 import Layout from "@layouts/Layout.astro";
 import Container from "@components/Container.astro";
 import Giscus from "@components/Giscus.astro";
@@ -11,112 +7,62 @@ import FormattedDate from "@components/FormattedDate.astro";
 import BackToPrevious from "@components/BackToPrevious.astro";
 import PostNavigation from "@components/PostNavigation.astro";
 import TableOfContents from "@components/TableOfContents.astro";
-
 import { readingTime } from "@lib/utils";
-import SanityImage from "@components/SanityImage";
 
 export async function getStaticPaths() {
-  // Query for all posts, ordered by publishedAt date
-  const posts = await sanityClient.fetch<SanityDocument[]>(`*[
-    _type == "post" 
-    && defined(slug.current) 
-    && !(_id in path('drafts.**'))
-  ] | order(publishedAt desc)`);
+  const posts = (await getCollection("notes", ({ data }) => !data.draft)).sort(
+    (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+  );
 
-  return posts.map((post, index) => {
-    const prevPost = index > 0 ? posts[index - 1] : null;
-    const nextPost = index < posts.length - 1 ? posts[index + 1] : null;
-
-    return {
-      params: { slug: post.slug.current },
-      props: { post, prevPost, nextPost },
-    };
-  });
+  return posts.map((post, index) => ({
+    params: { slug: post.slug },
+    props: {
+      post,
+      prevPost: posts[index - 1] ?? null,
+      nextPost: posts[index + 1] ?? null,
+    },
+  }));
 }
 
-const { post, prevPost, nextPost } = Astro.props;
-const headings = post.body
-  ? post.body
-      .filter(
-        (block: any) =>
-          block._type === "block" && ["h2", "h3", "h4"].includes(block.style),
-      )
-      .map((block: any) => ({
-        depth: block.style === "h2" ? 2 : block.style === "h3" ? 3 : 4,
-        slug: block._key,
-        text: block.children.map((child: any) => child.text).join(""),
-      }))
-  : [];
+type Props = {
+  post: CollectionEntry<"notes">;
+  prevPost: CollectionEntry<"notes"> | null;
+  nextPost: CollectionEntry<"notes"> | null;
+};
 
-const estimatedReadTime = post.body
-  ? readingTime(JSON.stringify(post.body))
-  : "2 min read";
+const { post, prevPost, nextPost } = Astro.props;
+const { Content, headings } = await post.render();
+const estimatedReadTime = readingTime(post.body);
 ---
 
-<Layout title={post.title} description={post.description}>
+<Layout title={post.data.title} description={post.data.description}>
   <Container>
-    <div class="mb-6">
-      <BackToPrevious href="/">Back to home</BackToPrevious>
-    </div>
+    <div class="mb-6"><BackToPrevious href="/">Back to home</BackToPrevious></div>
     <div class="my-10 space-y-1">
-      <div class="flex items-center gap-1.5">
-        <div class="text-sm">
-          <FormattedDate date={new Date(post.publishedAt)} />
-        </div>
-        <span class="text-sm">&bull;</span>
-        <div class="text-sm">{estimatedReadTime}</div>
+      <div class="flex items-center gap-1.5 text-sm">
+        <FormattedDate date={post.data.date} />
+        <span>&bull;</span>
+        <span>{estimatedReadTime}</span>
       </div>
-      <h1 class="text-3xl font-semibold text-black dark:text-white">
-        {post.title}
-      </h1>
+      <h1 class="text-3xl font-semibold text-black dark:text-white">{post.data.title}</h1>
     </div>
 
     {headings.length > 0 && <TableOfContents headings={headings} />}
 
     <article class="prose prose-neutral max-w-full dark:prose-invert">
-      {
-        post.body ? (
-          <PortableText
-            value={post.body}
-            components={{
-              types: {
-                image: SanityImage,
-              },
-            }}
+      <img src={post.data.images[0]} alt={post.data.imageAlt ?? ""} class="my-8 w-full" />
+      <Content />
+
+      {(prevPost || nextPost) && (
+        <div class="mt-24">
+          <PostNavigation
+            prevPost={prevPost ? { slug: `/notes/${prevPost.slug}/`, title: prevPost.data.title } : null}
+            nextPost={nextPost ? { slug: `/notes/${nextPost.slug}/`, title: nextPost.data.title } : null}
           />
-        ) : (
-          <p>Post content is missing.</p>
-        )
-      }
+        </div>
+      )}
 
-      <div class="mt-24">
-        {
-          (prevPost || nextPost) && (
-            <PostNavigation
-              prevPost={
-                prevPost
-                  ? {
-                      slug: `/notes/${prevPost.slug.current}`,
-                      title: prevPost.title,
-                    }
-                  : null
-              }
-              nextPost={
-                nextPost
-                  ? {
-                      slug: `/notes/${nextPost.slug.current}`,
-                      title: nextPost.title,
-                    }
-                  : null
-              }
-            />
-          )
-        }
-      </div>
-
-      <div class="mt-24">
-        <Giscus />
-      </div>
+      <div class="mt-24"><Giscus /></div>
     </article>
   </Container>
 </Layout>

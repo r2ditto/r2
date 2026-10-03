@@ -1,5 +1,5 @@
 // Interactive photo cube.
-// 54 rounded photo tiles laid out like a Rubik's cube, with nine images per face. It drifts on its own and can be dragged to orbit.
+// A seamless cube of 54 square photo panels, with nine images per face. It drifts on its own and can be dragged to orbit.
 // Hovering a face lifts it; clicking turns that face toward the viewer and
 // reports it (cube:select) so its details can be shown.
 // Double-clicking empty space explodes the cube into floating, spinning tiles;
@@ -13,31 +13,26 @@ import type { GalleryItem } from "@lib/timeline-gallery";
 export type CubeOptions = {
   gap: number; // spacing between tiles, as a share of a tile
   cornerRadius: number; // rounded corners, in tile UV units
-  emptyColor: string;
-  coreColor: string; // the dark body showing through the gaps between tiles
   backShade: number; // brightness of a tile's back
   lift: number; // how far a hovered face's tiles rise (world units)
   fit: number; // share of the viewport's short side the cube fills
 };
 
 const DEFAULTS: CubeOptions = {
-  gap: 0.09,
-  cornerRadius: 0.11,
-  emptyColor: "#222222",
-  coreColor: "#0b0b0b",
-  backShade: 0.35,
-  lift: 0.08,
+  gap: 0,
+  cornerRadius: 0,
+  backShade: 0.8,
+  lift: 0,
   fit: 0.62,
 };
 
-const FOV = 35;
+const FOV = 45;
 const CUBE_RADIUS = 2.8; // bounding sphere of the cube, for fitting the camera
-const SPIN_Y = 0.25; // rad/s auto-rotate
-const SPIN_X = 0.1;
+const SPIN_Y = 0.18; // rad/s auto-rotate
+const SPIN_X = 0.045;
 const IDLE_RESUME = 2; // seconds after an interaction before auto-rotate resumes
 const FACE_TURN = 0.7; // seconds to turn a clicked face toward the viewer
 const LIFT_RATE = 10;
-const CORE_RATE = 12;
 const TAP_SLOP = 6; // px
 const DOUBLE_TAP_MS = 300;
 const DOUBLE_TAP_DIST = 30;
@@ -53,6 +48,10 @@ const DEBRIS_RADIUS = 4.5; // soft limit that keeps debris mostly in frame
 const REBUILD_DURATION = 1.1; // seconds per tile
 const REBUILD_STAGGER = 0.6; // seconds of random start delay
 
+const MUTED_TILE_COLORS = [
+  "#1b1b1a", "#20201e", "#191a1a", "#22211f",
+];
+
 // Each face's outward normal, plus right/up for an upright image seen from outside
 const FACES: { n: THREE.Vector3; r: THREE.Vector3; u: THREE.Vector3 }[] = [
   { n: v(0, 0, 1), r: v(1, 0, 0), u: v(0, 1, 0) }, // front
@@ -61,6 +60,14 @@ const FACES: { n: THREE.Vector3; r: THREE.Vector3; u: THREE.Vector3 }[] = [
   { n: v(-1, 0, 0), r: v(0, 0, 1), u: v(0, 1, 0) }, // left
   { n: v(0, 1, 0), r: v(1, 0, 0), u: v(0, 0, -1) }, // top
   { n: v(0, -1, 0), r: v(1, 0, 0), u: v(0, 0, 1) }, // bottom
+];
+
+// Give each photo a distinct tile, starting with the center of each face.
+const PHOTO_TILE_ORDER = [
+  ...FACES.map((_, face) => face * 9 + 4),
+  ...[0, 2, 6, 8, 1, 3, 5, 7].flatMap((position) =>
+    FACES.map((_, face) => face * 9 + position),
+  ),
 ];
 
 const vertexShader = /* glsl */ `
@@ -73,12 +80,20 @@ const vertexShader = /* glsl */ `
 
 const fragmentShader = /* glsl */ `
   uniform sampler2D uTexture;
+  uniform sampler2D uGrungeTexture;
   uniform bool uHasTexture;
+  uniform bool uHasGrungeTexture;
   uniform vec3 uColor;
   uniform float uRadius;
   uniform float uAspect;
   uniform float uBackShade;
+  uniform float uGrainSeed;
+  uniform float uGrungeTone;
   varying vec2 vUv;
+
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
 
   float roundedBox(vec2 p, vec2 b, float r) {
     vec2 q = abs(p) - b + r;
@@ -94,6 +109,13 @@ const fragmentShader = /* glsl */ `
     else uv.y = (uv.y - 0.5) * uAspect + 0.5;
 
     vec3 color = uHasTexture ? texture2D(uTexture, uv).rgb : uColor;
+    if (!uHasTexture && uHasGrungeTexture) {
+      vec2 offset = vec2(hash(vec2(uGrainSeed, 1.0)), hash(vec2(2.0, uGrainSeed)));
+      vec2 grainUv = vUv * 0.9 + offset;
+      float fineGrain = hash(floor(vUv * 320.0) + uGrainSeed);
+      color = texture2D(uGrungeTexture, grainUv).rgb;
+      color *= uGrungeTone * (0.96 + fineGrain * 0.08);
+    }
     float shade = gl_FrontFacing ? 1.0 : uBackShade;
     gl_FragColor = vec4(color * shade, 1.0);
     #include <colorspace_fragment>
@@ -103,6 +125,7 @@ const fragmentShader = /* glsl */ `
 type Tile = {
   mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   face: number;
+  itemIndex: number | null;
   home: THREE.Vector3;
   homeQuat: THREE.Quaternion;
   normal: THREE.Vector3;
@@ -126,7 +149,6 @@ export class PhotoCube {
   private group = new THREE.Group();
   private controls: OrbitControls;
   private geometry = new THREE.PlaneGeometry(1, 1);
-  private core: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
   private textures: THREE.Texture[] = [];
   private tiles: Tile[] = [];
   private raycaster = new THREE.Raycaster();
@@ -172,15 +194,7 @@ export class PhotoCube {
     this.controls.enableZoom = false;
     this.controls.rotateSpeed = 0.7;
 
-    // Dark body inside the tiles, like the plastic of a Rubik's cube. It hides
-    // the backs of the far tiles through the gaps, and shrinks away on explode.
-    const coreSize = 3 * (1 + this.opts.gap) - 0.04;
-    this.core = new THREE.Mesh(
-      new THREE.BoxGeometry(coreSize, coreSize, coreSize),
-      new THREE.MeshBasicMaterial({ color: this.opts.coreColor }),
-    );
-    this.group.add(this.core);
-
+    // Independent double-sided panels leave the cube open through its gaps.
     this.scene.add(this.group);
     this.buildTiles();
     this.resize();
@@ -190,8 +204,13 @@ export class PhotoCube {
     for (let step = 0; step < 120; step++) {
       for (const tile of this.tiles) this.float(tile, 1 / 60, step / 60);
     }
-    this.core.scale.setScalar(0.0001);
-    this.core.visible = false;
+    const featuredTile = this.tiles.find((tile) => tile.itemIndex === 0);
+    if (featuredTile) {
+      featuredTile.mesh.position.copy(this.camera.position).normalize().multiplyScalar(5.5);
+      featuredTile.mesh.quaternion.copy(this.camera.quaternion);
+      featuredTile.velocity.set(0, 0, 0);
+      featuredTile.spinRate = 0.08;
+    }
     this.renderer.setAnimationLoop(this.frame);
   }
 
@@ -200,8 +219,6 @@ export class PhotoCube {
     this.cleanup.forEach((fn) => fn());
     this.controls.dispose();
     this.geometry.dispose();
-    this.core.geometry.dispose();
-    this.core.material.dispose();
     this.tiles.forEach((t) => t.mesh.material.dispose());
     this.textures.forEach((t) => t.dispose());
     this.renderer.dispose();
@@ -254,6 +271,8 @@ export class PhotoCube {
 
   // Select a face (turning it toward the viewer), or clear the selection
   select(tile: number | null) {
+    const itemIndex = tile === null ? null : this.tiles[tile]?.itemIndex ?? null;
+    if (tile !== null && itemIndex === null) return;
     const face = tile === null ? null : Math.floor(tile / 9);
     if (tile === this.selected) return;
     this.selected = tile;
@@ -262,7 +281,7 @@ export class PhotoCube {
     }
     this.idleTime = 0;
     this.container.dispatchEvent(
-      new CustomEvent("cube:select", { detail: { index: tile === null ? null : tile % this.items.length }, bubbles: true }),
+      new CustomEvent("cube:select", { detail: { index: itemIndex }, bubbles: true }),
     );
   }
 
@@ -270,7 +289,19 @@ export class PhotoCube {
 
   private buildTiles() {
     const loader = new THREE.TextureLoader();
-    const itemMaterials: THREE.ShaderMaterial[][] = this.items.map(() => []);
+    const itemMaterials: THREE.ShaderMaterial[][] = this.items.slice(0, 54).map(() => []);
+    const emptyMaterials: THREE.ShaderMaterial[] = [];
+    const grungeTexture = loader.load("/cube-charcoal-texture.png", () => {
+      for (const material of emptyMaterials) material.uniforms.uHasGrungeTexture.value = true;
+    });
+    grungeTexture.colorSpace = THREE.SRGBColorSpace;
+    grungeTexture.wrapS = THREE.RepeatWrapping;
+    grungeTexture.wrapT = THREE.RepeatWrapping;
+    grungeTexture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+    this.textures.push(grungeTexture);
+    const itemByTile = new Map(
+      PHOTO_TILE_ORDER.slice(0, this.items.length).map((tile, index) => [tile, index]),
+    );
 
     FACES.forEach(({ n, r, u }, face) => {
       const homeQuat = new THREE.Quaternion().setFromRotationMatrix(
@@ -278,21 +309,28 @@ export class PhotoCube {
       );
       for (let row = 0; row < 3; row++) {
         for (let col = 0; col < 3; col++) {
+          const tileIndex = face * 9 + row * 3 + col;
+          const itemIndex = itemByTile.get(tileIndex) ?? null;
+          const colorIndex = (face * 3 + row * 5 + col * 7) % MUTED_TILE_COLORS.length;
           const material = new THREE.ShaderMaterial({
             uniforms: {
               uTexture: { value: null },
+              uGrungeTexture: { value: grungeTexture },
               uHasTexture: { value: false },
-              uColor: { value: new THREE.Color(this.opts.emptyColor) },
+              uHasGrungeTexture: { value: false },
+              uColor: { value: new THREE.Color(MUTED_TILE_COLORS[colorIndex]) },
               uRadius: { value: this.opts.cornerRadius },
               uAspect: { value: 1 },
               uBackShade: { value: this.opts.backShade },
+              uGrainSeed: { value: tileIndex + 1 },
+              uGrungeTone: { value: 0.88 + (tileIndex % 5) * 0.055 },
             },
             vertexShader,
             fragmentShader,
             side: THREE.DoubleSide,
           });
-          const tileIndex = face * 9 + row * 3 + col;
-          itemMaterials[tileIndex % this.items.length]?.push(material);
+          if (itemIndex !== null) itemMaterials[itemIndex]?.push(material);
+          else emptyMaterials.push(material);
 
           const home = n
             .clone()
@@ -309,6 +347,7 @@ export class PhotoCube {
           this.tiles.push({
             mesh,
             face,
+            itemIndex,
             home,
             homeQuat,
             normal: n.clone(),
@@ -323,8 +362,8 @@ export class PhotoCube {
       }
     });
 
-    // Load each photo once and share its texture among matching tiles.
-    this.items.forEach((item, index) => {
+    // Load each photo only for its assigned tile.
+    this.items.slice(0, 54).forEach((item, index) => {
       const texture = loader.load(item.src, (t) => {
         const img = t.image as HTMLImageElement;
         for (const m of itemMaterials[index]) {
@@ -451,13 +490,6 @@ export class PhotoCube {
       this.finishRebuild = null;
     }
 
-    // Core is solid when intact, gone when exploded, and fills back in as tiles land
-    const coreTarget =
-      this.state === "intact" ? 1 : this.state === "rebuilding" ? 1 - this.ruinLevel : 0;
-    const scale = this.core.scale.x + (coreTarget - this.core.scale.x) * (1 - Math.exp(-CORE_RATE * dt));
-    this.core.scale.setScalar(Math.max(scale, 0.0001));
-    this.core.visible = scale > 0.01;
-
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
     this.emitRuin();
@@ -504,7 +536,7 @@ export class PhotoCube {
       bubbles: true,
       detail: {
         bounds,
-        index: face === null || this.selected !== null ? null : face % this.items.length,
+        index: face === null || this.selected !== null ? null : this.tiles[face].itemIndex,
         x: ((this.pointer?.x ?? 0) + 1) * this.container.clientWidth / 2,
         y: (1 - (this.pointer?.y ?? 0)) * this.container.clientHeight / 2,
       },
@@ -517,7 +549,9 @@ export class PhotoCube {
     if (!this.pointer) return null;
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const hit = this.raycaster.intersectObjects(this.tiles.map((t) => t.mesh), false)[0];
-    return hit ? (hit.object.userData.tile as number) : null;
+    if (!hit) return null;
+    const tile = hit.object.userData.tile as number;
+    return this.tiles[tile].itemIndex === null ? null : tile;
   }
 
   private placeHome(tile: Tile, dt: number) {
@@ -533,12 +567,14 @@ export class PhotoCube {
     velocity.multiplyScalar(Math.exp(-BURST_DAMPING * dt));
     // Soft limit so the debris stays mostly in frame
     const dist = mesh.position.length();
-    if (dist > DEBRIS_RADIUS) {
+    // Keep the sole published photo ahead of the scattered placeholders.
+    if (dist > DEBRIS_RADIUS && !(this.items.length === 1 && tile.itemIndex === 0)) {
       velocity.addScaledVector(mesh.position, (-(dist - DEBRIS_RADIUS) / dist) * 2 * dt);
     }
     mesh.position.addScaledVector(velocity, dt);
     mesh.position.y += Math.sin(time * 1.3 + tile.phase) * 0.12 * dt; // gentle bob
-    tile.spinRate = Math.max(FLOAT_SPIN, tile.spinRate * Math.exp(-0.6 * dt));
+    tile.spinRate = Math.max(tile.itemIndex === null ? FLOAT_SPIN : 0.08,
+      tile.spinRate * Math.exp(-0.6 * dt));
     mesh.rotateOnAxis(tile.spinAxis, tile.spinRate * dt);
   }
 

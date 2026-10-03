@@ -15,6 +15,8 @@
 export type GalleryItem = {
   src: string;
   kind: "image" | "video";
+  postSlug?: string;
+  imageAlt?: string;
   caption?: string;
   // Back of the card, revealed on hover
   title?: string;

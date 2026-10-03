@@ -1,5 +1,3 @@
-import sanity from "@sanity/astro";
-
 import react from "@astrojs/react";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
@@ -15,11 +13,6 @@ export default defineConfig({
     sitemap(),
     mdx(),
     pagefind(),
-    sanity({
-      projectId: "dlra7hh7",
-      dataset: "production",
-      useCdn: false,
-    }),
     react(),
   ],
   markdown: {

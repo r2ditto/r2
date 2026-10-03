@@ -2,15 +2,30 @@
 import PosterLayout from "@layouts/PosterLayout.astro";
 import PhotoCube from "@components/PhotoCube.astro";
 import Crumble from "@components/Crumble.astro";
-import { GALLERY } from "@data/gallery";
+import { galleryFromPosts } from "@data/gallery";
+import { getCollection } from "astro:content";
 import { HOME, SITE, SOCIALS } from "@consts";
 
 const year = new Date().getFullYear();
+const posts = (await getCollection("notes", ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+const gallery = galleryFromPosts(posts);
 ---
 
 <PosterLayout title={SITE.TITLE} description={HOME.DESCRIPTION}>
   <main class="poster">
-    <PhotoCube items={GALLERY} />
+    <div class="handwriting" aria-hidden="true">
+      <svg class="handwriting-archive" viewBox="40 650 1968 680" width="1968" height="680" focusable="false">
+        <image href="/handwritten-archive.png" width="2048" height="2048" />
+      </svg>
+      <svg class="handwriting-signature" viewBox="400 800 1000 500" width="1000" height="500" focusable="false">
+        <image href="/handwritten-signature.png" width="2048" height="2048" />
+      </svg>
+    </div>
+    <p class="sr-only">An archive of ideas, images, and projects caught in a loop of decay and becoming. — Ryan Rey</p>
+
+    <PhotoCube items={gallery} posts={posts} />
 
     <header class="corner top-left">
       <h1 class="title"><Crumble text="Ruin & Rebuild" italicInitials /></h1>
@@ -24,7 +39,7 @@ const year = new Date().getFullYear();
     </div>
 
     <div class="corner bottom-left">
-      <p class="label"><Crumble text="Toronto, CA" /></p>
+      <p class="label"><Crumble text="-79.3832 / 43.6532" /></p>
     </div>
 
     <nav class="corner bottom-center" aria-label="Social">
@@ -49,11 +64,46 @@ const year = new Date().getFullYear();
     position: relative;
     height: 100dvh;
     overflow: hidden;
-    /* Design-board dot grid, like a Figma canvas */
-    background-color: #111111;
-    background-image: radial-gradient(circle, #3a3a3a 1px, transparent 1.5px);
-    background-size: 24px 24px;
-    background-position: 12px 12px;
+    color: #181715;
+    background-color: #e7e2d7;
+    background-image:
+      url("/paper-grain.svg"),
+      radial-gradient(ellipse at 12% 18%, #564f4024, transparent 34%),
+      radial-gradient(ellipse at 86% 82%, #80745c1f, transparent 38%),
+      radial-gradient(ellipse at 50% 48%, #f8f5ee 5%, transparent 75%);
+    background-size: 512px 512px, cover, cover, cover;
+  }
+
+  .handwriting {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+
+  .handwriting-archive,
+  .handwriting-signature {
+    position: absolute;
+    display: block;
+    height: auto;
+  }
+
+  .handwriting-archive {
+    top: 47%;
+    left: 50%;
+    width: min(88vw, 1400px);
+    transform: translate(-50%, -50%) rotate(-1.5deg);
+    opacity: 0.76;
+  }
+
+  .handwriting-signature {
+    right: clamp(16px, 8vw, 150px);
+    bottom: clamp(88px, 13vh, 160px);
+    width: clamp(210px, 31vw, 380px);
+    transform: rotate(-5deg);
+    opacity: 0.88;
   }
 
   .corner {
@@ -115,7 +165,7 @@ const year = new Date().getFullYear();
     font-size: clamp(0.7rem, 1vw, 0.875rem);
     line-height: 1.3;
     text-transform: uppercase;
-    color: #fff;
+    color: #181715;
     text-decoration: none;
   }
 
@@ -162,6 +212,18 @@ const year = new Date().getFullYear();
   }
 
   @media (max-width: 640px) {
+    .handwriting-archive {
+      top: 43%;
+      width: 92vw;
+      transform: translate(-50%, -50%) rotate(-1deg);
+    }
+
+    .handwriting-signature {
+      right: 6vw;
+      bottom: 17vh;
+      width: 55vw;
+    }
+
     .bottom-center {
       bottom: 3.5rem;
       left: 1.5rem;

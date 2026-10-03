@@ -1,12 +1,17 @@
 ---
 import type { GalleryItem } from "@lib/timeline-gallery";
+import type { CollectionEntry } from "astro:content";
 
 interface Props {
-  // Photos repeat across the 54 tiles when fewer than 54 are supplied.
+  // Each photo occupies one tile; remaining tiles use muted colors.
   items: GalleryItem[];
+  posts: CollectionEntry<"notes">[];
 }
 
-const { items } = Astro.props;
+const { items, posts } = Astro.props;
+const renderedPosts = await Promise.all(
+  posts.map(async (post) => ({ post, Content: (await post.render()).Content })),
+);
 ---
 
 <photo-cube data-items={JSON.stringify(items)}>
@@ -23,29 +28,56 @@ const { items } = Astro.props;
   </div>
 
   <div class="cube-controls" hidden>
-    <p class="hint" hidden>
-      Drag to rotate · <span class="mouse-hint">Double-click</span><span class="touch-hint">Double-tap</span> the background to explode
-    </p>
-    <button class="cube-action" type="button">Rebuild</button>
+    <button class="cube-action" type="button" data-action="rebuild">
+      <span class="action-icon" aria-hidden="true">
+        <span class="icon-fallback icon-fallback--explode">✷</span>
+        <span class="icon-fallback icon-fallback--rebuild">◇</span>
+        <span class="icon-lottie icon-lottie--explode"></span>
+        <span class="icon-lottie icon-lottie--rebuild"></span>
+      </span>
+      <span class="cube-action-label">Rebuild</span>
+    </button>
   </div>
 
   <ul class="sr-only">
     {
-      items.map((item) => (
+      posts.map((post) => (
         <li>
-          <h2>{item.title ?? item.caption}</h2>
-          {item.text && <p>{item.text}</p>}
+          <h2><a href={`/notes/${post.slug}/`}>{post.data.title}</a></h2>
+          <p>{post.data.description}</p>
         </li>
       ))
     }
   </ul>
 
-  <aside class="details" aria-live="polite" hidden>
-    <button class="close" type="button" aria-label="Close details">×</button>
-    <h2 class="details-title"></h2>
-    <p class="details-text"></p>
-    <p class="details-index"></p>
-  </aside>
+  <dialog class="details" aria-labelledby="post-title">
+    <header class="post-bar">
+      <span>R2 / Field notes</span>
+      <button class="close" type="button" autofocus aria-label="Close article (Escape)">
+        Escape
+        <svg viewBox="0 0 20 20" width="20" height="20" fill="none" aria-hidden="true">
+          <path d="M4 4 16 16M16 4 4 16" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+        </svg>
+      </button>
+    </header>
+    <article class="post-article">
+      <div class="post-heading">
+        <p class="details-index"></p>
+        <h2 id="post-title" class="details-title"></h2>
+      </div>
+      <figure class="post-figure">
+        <img class="post-image" src={items[0]?.src ?? ""} alt="" />
+      </figure>
+      <div class="post-body">
+        {renderedPosts.map(({ post, Content }) => (
+          <div class="post-content" data-post-slug={post.slug} hidden>
+            <Content />
+          </div>
+        ))}
+        <footer class="post-end">End of note — R2 / Ruin &amp; Rebuild</footer>
+      </div>
+    </article>
+  </dialog>
 </photo-cube>
 
 <style>
@@ -77,7 +109,7 @@ const { items } = Astro.props;
     z-index: 3;
     width: 0;
     height: 0;
-    color: #f4f4f0;
+    color: #181715;
     pointer-events: none;
     opacity: 0;
     visibility: hidden;
@@ -109,7 +141,7 @@ const { items } = Astro.props;
   .tracker-link {
     position: absolute;
     height: 1px;
-    background: #fff9;
+    background: #18171599;
     transform-origin: 0 50%;
   }
 
@@ -117,8 +149,8 @@ const { items } = Astro.props;
     position: absolute;
     width: 18px;
     height: 26px;
-    border: 1px solid #fffb;
-    background: repeating-conic-gradient(#fff3 0% 25%, #fff0 0% 50%) 0 / 8px 8px;
+    border: 1px solid #181715bb;
+    background: repeating-conic-gradient(#18171533 0% 25%, #18171500 0% 50%) 0 / 8px 8px;
     box-sizing: border-box;
   }
 
@@ -127,8 +159,8 @@ const { items } = Astro.props;
     left: -1px;
     bottom: 100%;
     padding: 2px 4px;
-    background: #ffffffcc;
-    color: #111;
+    background: #181715dd;
+    color: #fff;
     white-space: nowrap;
     font: 9px/1.2 "Geist Mono", monospace;
     letter-spacing: 0.06em;
@@ -149,6 +181,7 @@ const { items } = Astro.props;
     padding: 10px 12px;
     border-left: 1px solid currentColor;
     background: #111e;
+    color: #fff;
   }
 
   .blob-heading {
@@ -176,134 +209,132 @@ const { items } = Astro.props;
     right: 1rem;
     text-align: center;
     font: 0.7rem/1.6 "Geist Mono", monospace;
-    color: #aaa;
+    color: #514d45;
     pointer-events: none;
   }
 
-  .hint { margin: 0 0 0.25rem; }
-  .touch-hint { display: none; }
-
   .cube-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
     min-height: 44px;
     padding: 0.5rem 1rem;
-    border: 1px solid #555;
-    border-radius: 4px;
-    background: #111;
-    color: #ddd;
+    border: 0;
+    border-radius: 0;
+    background: #e7e2d7;
+    color: #181715;
     font: inherit;
     text-transform: uppercase;
     cursor: pointer;
     pointer-events: auto;
   }
 
-  .cube-action:hover { border-color: #ddd; color: #fff; }
-  .cube-action:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+  .cube-action:hover { background: #f8f5ee; }
+  .cube-action:focus-visible { outline: 2px solid #181715; outline-offset: 4px; }
   .cube-action:disabled { opacity: 0.5; cursor: wait; }
 
-  @media (pointer: coarse) {
-    .mouse-hint { display: none; }
-    .touch-hint { display: inline; }
+  .action-icon {
+    position: relative;
+    display: inline-block;
+    width: 58px;
+    height: 40px;
+    flex: none;
   }
-
-  /* Card-back styling, matching the gallery's flipped cards */
+  .icon-lottie, .icon-fallback {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+  }
+  .icon-fallback {
+    color: #c64b20;
+    font: 1.35rem/1 "Instrument Serif", serif;
+  }
+  .cube-action[data-action="rebuild"] .icon-lottie--explode,
+  .cube-action[data-action="rebuild"] .icon-fallback--explode,
+  .cube-action[data-action="explode"] .icon-lottie--rebuild,
+  .cube-action[data-action="explode"] .icon-fallback--rebuild { display: none; }
+  .cube-action[data-action="explode"] .action-icon.is-explode-loaded .icon-fallback--explode,
+  .cube-action[data-action="rebuild"] .action-icon.is-rebuild-loaded .icon-fallback--rebuild { display: none; }
+  .icon-lottie :global(svg) { width: 100%; height: 100%; }
   .details {
-    position: absolute;
-    z-index: 2;
-    top: 50%;
-    right: clamp(1.5rem, 6vw, 6rem);
-    width: min(22rem, 34vw);
-    padding: 1.5rem 1.5rem 1.25rem;
-    background: #f1ede4;
-    color: #111;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-    transform: translate(0, -50%);
-    animation: details-in 350ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-
-  .details[hidden] {
-    display: none;
-  }
-
-  .details-title {
-    margin: 0 2rem 0.75rem 0;
-    font-family: "Instrument Serif", serif;
-    font-weight: 400;
-    font-size: clamp(1.75rem, 3vw, 2.75rem);
-    line-height: 0.95;
-  }
-
-  .details-text {
-    margin: 0 0 2rem;
-    font-family: "Geist Mono", monospace;
-    font-size: 0.8125rem;
-    line-height: 1.55;
-  }
-
-  .details-index {
-    margin: 0;
-    font-family: "Geist Mono", monospace;
-    font-size: 0.75rem;
-    opacity: 0.5;
-  }
-
-  .close {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    width: 2rem;
-    height: 2rem;
+    position: fixed;
+    inset: 0;
+    width: calc(100vw - 48px);
+    height: calc(100dvh - 48px);
+    max-width: none;
+    max-height: none;
+    box-sizing: border-box;
+    margin: auto;
+    padding: 0;
     border: 0;
-    background: none;
+    background: rgb(8 8 8 / 20%);
+    color: #fff;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+  .details::backdrop {
+    background: rgb(8 8 8 / 42%);
+    backdrop-filter: blur(5px);
+  }
+  .details[open] { animation: post-in 220ms ease-out; }
+  .post-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px clamp(20px, 4vw, 64px);
+    font: 0.7rem "Geist Mono", monospace;
+    text-transform: uppercase;
+  }
+  .close {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-height: 44px;
+    border: 0;
+    padding: 0 4px;
     color: inherit;
-    font: 1.5rem/1 "Geist Mono", monospace;
+    background: none;
+    font: inherit;
+    text-transform: uppercase;
     cursor: pointer;
-    opacity: 0.6;
   }
-
-  .close:hover {
-    opacity: 1;
-  }
-
-  @keyframes details-in {
-    from {
-      opacity: 0;
-      transform: translate(1.5rem, -50%);
-    }
-  }
-
+  .close svg { flex: none; }
+  .close:hover { opacity: 0.6; }
+  .close:focus-visible { outline: none; text-decoration: underline; text-underline-offset: 4px; }
+  .post-article { max-width: 1200px; margin: auto; padding: clamp(32px, 6vw, 88px) clamp(20px, 5vw, 80px); }
+  .post-heading { max-width: 820px; margin-bottom: 40px; }
+  .details-index { margin: 0 0 24px; font: 0.65rem/1.6 "Geist Mono", monospace; text-transform: uppercase; letter-spacing: 0.08em; }
+  .details-title { margin: 0 0 24px; font: 400 clamp(3.5rem, 8vw, 7.5rem)/0.95 "Instrument Serif", serif; letter-spacing: -0.035em; overflow-wrap: anywhere; }
+  .post-figure { margin: 0 0 56px; }
+  .post-image { display: block; width: 100%; max-height: 65vh; aspect-ratio: 16 / 10; object-fit: cover; background: #d8d3c9; }
+  figcaption { margin-top: 12px; color: #ddd; font: 0.65rem/1.5 "Geist Mono", monospace; }
+  .post-body { max-width: 680px; margin: auto; font: 1rem/1.85 system-ui, sans-serif; }
+  .post-body :global(p) { margin: 0 0 24px; }
+  .post-body :global(.post-content > p:first-child) { font-size: 1.25rem; line-height: 1.65; }
+  .post-body :global(h2) { margin: 48px 0 20px; font: 400 2.5rem/1.1 "Instrument Serif", serif; }
+  .post-body :global(blockquote) { margin: 36px 0; padding-left: 20px; border-left: 1px solid #ffffff88; font-style: italic; }
+  blockquote { margin: 40px 0; padding-left: 24px; border-left: 1px solid #777; font: italic 2rem/1.3 "Instrument Serif", serif; }
+  .post-end { margin-top: 64px; padding-top: 24px; border-top: 1px solid #ffffff44; font: 0.65rem/1.6 "Geist Mono", monospace; text-transform: uppercase; }
+  @keyframes post-in { from { opacity: 0; transform: translateY(12px); } }
   @media (max-width: 640px) {
-    .details {
-      top: auto;
-      right: 1rem;
-      bottom: 6.5rem;
-      left: 1rem;
-      width: auto;
-      transform: none;
-      animation-name: details-up;
-    }
-
-    @keyframes details-up {
-      from {
-        opacity: 0;
-        transform: translateY(1.5rem);
-      }
-    }
+    .details { width: calc(100vw - 16px); height: calc(100dvh - 16px); }
+    .post-figure { margin-bottom: 32px; }
   }
+  @media (prefers-reduced-motion: reduce) { .details[open] { animation: none; } }
 
-  @media (prefers-reduced-motion: reduce) {
-    .details {
-      animation: none;
-    }
-  }
 </style>
 
 <script>
   import type { GalleryItem } from "@lib/timeline-gallery";
   import type { PhotoCube } from "@lib/photo-cube";
+  import rebuildAnimation from "@lib/rebuild-lottie.json";
 
   class PhotoCubeElement extends HTMLElement {
     private cube?: PhotoCube;
     private ready?: Promise<PhotoCube | undefined>;
+    private actionAnimations: { destroy(): void }[] = [];
 
     connectedCallback() {
       const stage = this.querySelector<HTMLElement>(".stage");
@@ -320,10 +351,39 @@ const { items } = Astro.props;
 
       this.bindDetails(items);
       this.bindBlob(items);
+      void this.bindActionAnimations();
+
     }
 
     disconnectedCallback() {
       this.cube?.destroy();
+      this.actionAnimations.forEach((animation) => animation.destroy());
+      this.actionAnimations = [];
+    }
+
+    private async bindActionAnimations() {
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const icon = this.querySelector<HTMLElement>(".action-icon");
+      if (!icon) return;
+      const { default: lottie } = await import("lottie-web");
+      if (!this.isConnected) return;
+      for (const action of ["explode", "rebuild"] as const) {
+        const container = icon.querySelector<HTMLElement>(`.icon-lottie--${action}`);
+        if (!container) continue;
+        const animation = lottie.loadAnimation({
+          container,
+          renderer: "svg",
+          loop: true,
+          autoplay: true,
+          ...(action === "explode"
+            ? { path: "/explosion-lottie.json" }
+            : { animationData: rebuildAnimation }),
+          rendererSettings: { preserveAspectRatio: "xMidYMid meet" },
+        });
+        animation.setSpeed(action === "explode" ? 0.5 : 1);
+        animation.addEventListener("DOMLoaded", () => icon.classList.add(`is-${action}-loaded`));
+        this.actionAnimations.push(animation);
+      }
     }
 
     // Pull an exploded cube back together
@@ -340,14 +400,14 @@ const { items } = Astro.props;
     private bindControls() {
       const controls = this.querySelector<HTMLElement>(".cube-controls")!;
       const button = controls.querySelector<HTMLButtonElement>(".cube-action")!;
-      const hint = controls.querySelector<HTMLElement>(".hint")!;
+      const label = button.querySelector<HTMLElement>(".cube-action-label")!;
       controls.hidden = false;
       let state = "exploded";
       this.addEventListener("gallery:ruin", (event) => {
         state = (event as CustomEvent<{ state: string }>).detail.state;
         button.disabled = state === "rebuilding";
-        button.textContent = state === "intact" ? "Explode cube" : state === "rebuilding" ? "Rebuilding…" : "Rebuild";
-        hint.hidden = state !== "intact";
+        button.dataset.action = state === "intact" ? "explode" : "rebuild";
+        label.textContent = state === "intact" ? "Explode cube" : state === "rebuilding" ? "Rebuilding…" : "Rebuild";
       });
       button.addEventListener("click", () => {
         if (state === "intact") this.cube?.explode();
@@ -418,22 +478,32 @@ const { items } = Astro.props;
     }
 
     private bindDetails(items: GalleryItem[]) {
-      const panel = this.querySelector<HTMLElement>(".details")!;
+      const panel = this.querySelector<HTMLDialogElement>(".details")!;
       const title = panel.querySelector(".details-title")!;
-      const text = panel.querySelector(".details-text")!;
       const index = panel.querySelector(".details-index")!;
+      const image = panel.querySelector<HTMLImageElement>(".post-image")!;
+      const postContents = panel.querySelectorAll<HTMLElement>(".post-content");
 
       this.addEventListener("cube:select", (e) => {
         const i = (e as CustomEvent<{ index: number | null }>).detail.index;
         const item = i === null ? null : items[i];
-        panel.hidden = !item;
-        if (!item || i === null) return;
+        if (!item || i === null) {
+          if (panel.open) panel.close();
+          return;
+        }
         title.textContent = item.title ?? item.caption ?? "";
-        text.textContent = item.text ?? "";
-        index.textContent = `NO. ${String(i + 1).padStart(2, "0")}`;
+        index.textContent = item.caption ?? "Field notes";
+        image.src = item.src;
+        image.alt = item.imageAlt ?? item.title ?? item.caption ?? "Visual study";
+        postContents.forEach((content) => {
+          content.hidden = content.dataset.postSlug !== item.postSlug;
+        });
+        if (!panel.open) panel.showModal();
+        panel.scrollTop = 0;
       });
 
-      panel.querySelector(".close")!.addEventListener("click", () => this.cube?.select(null));
+      panel.querySelector(".close")!.addEventListener("click", () => panel.close());
+      panel.addEventListener("close", () => this.cube?.select(null));
     }
   }
 
