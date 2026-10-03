@@ -77,6 +77,9 @@ dependencies:
   groq:
     specifier: ^3.76.3
     version: 3.76.3
+  lottie-web:
+    specifier: ^5.13.0
+    version: 5.13.0
   motion:
     specifier: ^11.12.0
     version: 11.12.0(react-dom@19.0.0)(react@19.0.0)
@@ -8128,6 +8131,10 @@ packages:
 
   /longest-streak@3.1.0:
     resolution: {integrity: sha512-9Ri+o0JYgehTaVBBDoMqIl8GXtbWg711O3srftcHhZ0dqnETqLaoIK0x17fUw9rFSlK/0NlsKe0Ahhyl5pXE2g==}
+    dev: false
+
+  /lottie-web@5.13.0:
+    resolution: {integrity: sha512-+gfBXl6sxXMPe8tKQm7qzLnUy5DUPJPKIyRHwtpCpyUEYjHYRJC/5gjUvdkuO2c3JllrPtHXH5UJJK8LRYl5yQ==}
     dev: false
 
   /loose-envify@1.4.0:
